@@ -1,0 +1,295 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #696969;
+    color: white;
+}
+
+/*--icon--*/
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+  font-size: 32px;
+}
+
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.page_logo {
+    height: 24px; /* Adjust height as needed */
+    margin-right: 10px; /* Space between logo and menu button */
+    vertical-align: middle;
+}
+
+.menu-bar {
+    background-color: #333;
+    padding: 4px;
+}
+
+/* Menu container */
+.menu {
+    display: inline-block;
+    position: relative;
+    margin-right: 15px;
+}
+
+/* Menu button */
+.menu-button {
+    background-color: #333;
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Dropdown content */
+.menu-content {
+    display: none;
+    position: absolute;
+    background-color: #444;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 100;
+    top: 100%;
+    left: 0;
+}
+
+/* Dropdown buttons */
+.menu-content button {
+    color: white;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* Hover effect for dropdown buttons */
+.menu-content button:hover {
+    background-color: #555;
+}
+
+/* Show menu class */
+.show-menu {
+    display: block !important;
+}
+
+.content-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.main-content {
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.tools-panel {
+    width: 20%;
+    background-color: #444;
+    padding: 10px;
+    overflow-y: auto;
+    border-left: 1px solid #555;
+}
+
+#imageView {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    position: absolute;
+    z-index: 1;
+}
+
+.upload-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.upload-prompt {
+    text-align: center;
+    padding: 20px;
+    background-color: rgba(30, 30, 30, 0.3);
+    border-radius: 10px;
+    border: 3px dashed #888;
+    max-width: 300px;
+}
+
+.upload-prompt:hover {
+    background-color: rgba(30, 30, 30, 0.5);
+}
+
+.upload-icon {
+    font-size: 64px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.browse-button {
+    background-color: #007BFF;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 15px;
+    transition: background-color 0.3s;
+}
+
+.browse-button:hover {
+    background-color: #0056b3;
+}
+
+.threshold-control {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.threshold-control label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.threshold-control input {
+    width: 100%;
+}
+
+.drag-over {
+    border-color: #007BFF;
+    background-color: rgba(60, 60, 60, 0.9);
+}
+
+
+
+.tool-button {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 8px;
+    background-color: #555;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.tool-button:hover {
+    background-color: #666;
+}
+
+
+/* sort type selctor */
+.sort-type-container {
+    margin-bottom: 20px;
+}
+
+.sort-type-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.sort-selector {
+    width: 100%;
+    padding: 8px;
+    background-color: #555;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.sort-selector:hover {
+    background-color: #666;
+}
+
+.sort-selector option {
+    background-color: #444;
+}
+
+/* Add this to style.css */
+.sort-direction-container {
+    margin-bottom: 20px;
+}
+
+.sort-direction-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+
+/* chunk-width-control styles */
+.chunk-width-control {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.chunk-width-control label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.chunk-width-control input {
+    width: 100%;
+}
+
+.help-text {
+    font-size: 12px;
+    color: #aaa;
+    margin: 2px 0 0 0;
+}
+
+@media (max-width: 600px) {
+    .menu-bar {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .menu {
+        margin-bottom: 5px;
+    }
+
+    .content-container {
+        flex-direction: column;
+    }
+    
+    .main-content, .tools-panel {
+        width: 100%;
+    }
+    
+    .tools-panel {
+        border-left: none;
+        border-top: 1px solid #555;
+    }
+    
+}
