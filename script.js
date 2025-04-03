@@ -6,8 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentThreshold = 0.5; // Default threshold
     // Add this with the other global variables at the top of script.js
     let currentSortDirection = 'right'; // Default sort direction
-    // Keep this with your other global variables
-    let currentChunkWidth = 0; // Default is 0 (no chunking)
+    
+
+    // Zoom and pan variables
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let lastMouseX, lastMouseY;
 
     // UI Elements
     const fileMenuButton = document.querySelector('.menu .menu-button');
@@ -71,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize UI based on default sort type
     updateUIBasedOnSortType(currentSortType);
 
+    /*
 
     // Add after your other UI initialization code
     const chunkSlider = document.getElementById('chunkSlider');
@@ -87,6 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
             chunkValue.textContent = currentChunkWidth;
         });
     }
+    */
 
     // Toggle dropdown when clicking on the File button
     if (fileMenuButton && fileDropdown) {
@@ -139,11 +147,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    
     
     // Handle Open Image
     function handleOpenImage() {
         console.log('Open Image action');
-
+    
         // Create an invisible file input element
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
@@ -156,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fileInput.addEventListener('change', function(e) {
             if (this.files && this.files[0]) {
                 const selectedFile = this.files[0];
-
+    
                 // Store the original filename
                 originalFileName = selectedFile.name;
                 
@@ -177,6 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Resize canvas to fit the image
                     canvas.width = img.width;
                     canvas.height = img.height;
+
+                    // Get the context and disable smoothing
+                    const ctx = canvas.getContext('2d');
+                    disableSmoothing(ctx);
                     
                     // Draw the image on the canvas
                     ctx.drawImage(img, 0, 0);
@@ -186,6 +200,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (uploadContainer) {
                         uploadContainer.style.display = 'none';
                     }
+                    
+                    // Set up zoom and pan
+                    setupImageViewport(canvas);
                 };
                 
                 // Set the image source to the selected file
@@ -198,6 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    
     // Handle Save Image
     function handleSaveImage() {
         console.log('Save Image action');
@@ -205,6 +223,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get the canvas element
         const canvas = document.getElementById('imageView');
         if (!canvas) return;
+
+        // Create a temporary canvas for saving
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        
+        // Get context and disable smoothing using your function
+        const tempCtx = tempCanvas.getContext('2d');
+        disableSmoothing(tempCtx);
+        
+        // Copy the pixel data from original canvas
+        const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        tempCtx.putImageData(imageData, 0, 0);
         
         // Create a temporary link element for download
         const link = document.createElement('a');
@@ -257,6 +288,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Ensure canvas size matches image
             canvas.width = img.width;
             canvas.height = img.height;
+
+            // Get context and disable smoothing
+            const ctx = canvas.getContext('2d');
+            disableSmoothing(ctx);
             
             // Draw the original image back to the canvas
             ctx.drawImage(img, 0, 0);
@@ -311,10 +346,127 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sortButton) {
         sortButton.addEventListener('click', function() {
             const canvas = document.getElementById('imageView');
-            PixelSorter.processImage(canvas, currentSortType, currentThreshold, currentSortDirection, currentChunkWidth);
-            // In the sort button event listener
-            console.log('Applying sort with chunk width:', currentChunkWidth);
+            // Remove the chunking parameter
+            PixelSorter.processImage(canvas, currentSortType, currentThreshold, currentSortDirection);
         });
+    }
+
+
+    //zoom stuff
+    function setupZoomAndPan() {
+        const canvas = document.getElementById('imageView');
+        const container = document.querySelector('.main-content');
+        
+        if (!canvas) return;
+        
+        // Mouse wheel event for zooming
+        canvas.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            
+            // Get mouse position relative to canvas
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Calculate zoom factor based on wheel delta
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1; // Zoom out or in
+            const newScale = scale * zoomFactor;
+            
+            // Limit zoom scale to reasonable values
+            if (newScale >= 0.1 && newScale <= 10) {
+                // Calculate new offsets to zoom toward cursor
+                offsetX = mouseX - (mouseX - offsetX) * zoomFactor;
+                offsetY = mouseY - (mouseY - offsetY) * zoomFactor;
+                scale = newScale;
+                
+                // Apply the transformation
+                applyTransform(canvas);
+            }
+        });
+        
+        // Mouse events for dragging/panning
+        canvas.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            canvas.style.cursor = 'grabbing';
+        });
+        
+        canvas.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                // Calculate the mouse movement
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+                
+                // Update the offsets
+                offsetX += deltaX;
+                offsetY += deltaY;
+                
+                // Save current mouse position for next move event
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                
+                // Apply the new transformation
+                applyTransform(canvas);
+            }
+        });
+        
+        // Handle mouseup and mouseleave events
+        function endDrag() {
+            if (isDragging) {
+                isDragging = false;
+                canvas.style.cursor = 'grab';
+            }
+        }
+        
+        canvas.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('mouseleave', endDrag);
+        
+        // Set initial cursor style
+        canvas.style.cursor = 'grab';
+        
+        // Add reset button to tools panel
+        const toolsPanel = document.querySelector('.tools-panel');
+        if (toolsPanel) {
+            const resetButton = document.createElement('button');
+            resetButton.textContent = 'Reset Zoom';
+            resetButton.className = 'tool-button';
+            resetButton.addEventListener('click', function() {
+                scale = 1;
+                offsetX = 0;
+                offsetY = 0;
+                applyTransform(canvas);
+            });
+            
+            toolsPanel.appendChild(resetButton);
+        }
+    }
+
+    // After successfully loading an image, call:
+    function setupImageViewport(canvas) {
+        // Reset zoom and pan
+        scale = 1;
+        offsetX = 0;
+        offsetY = 0;
+        applyTransform(canvas);
+        
+        // Setup zoom and pan events
+        setupZoomAndPan();
+    }
+    
+    // Apply transform to the canvas
+    function applyTransform(canvas) {
+        canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        canvas.style.transformOrigin = '0 0';
+    }
+
+    // Add this function to script.js
+    function disableSmoothing(ctx) {
+        // Disable image smoothing for crisp pixels
+        ctx.imageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
     }
     
 });
