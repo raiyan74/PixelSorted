@@ -1,427 +1,491 @@
 /**
- * Pixel Sorter Algorithms
- * This file contains my implementation of different pixel sorting algorithms
- * Added chunking and mirroring functionality for more interesting visual effects
+ * Enhanced Pixel Sorter Algorithms
+ * Inspired by C++ implementation with advanced features
  */
 
-// My namespace for pixel sorting algorithms
 const PixelSorter = {
-    
     /**
      * Main entry point to process an image with sorting
+     * @param {HTMLCanvasElement} canvas - The canvas element containing the image
+     * @param {string} sortParameter - The parameter to sort by: 'brightness', 'hue', 'saturation'
+     * @param {number} lowerThreshold - Lower threshold value (0-1)
+     * @param {number} upperThreshold - Upper threshold value (0-1)
+     * @param {string} direction - Sort direction: 'right', 'left', 'down', 'up'
+     * @param {number} angle - Rotation angle in degrees
+     * @param {number} falloffChance - Chance to skip sorting (0-100)
+     * @param {number} threadCount - Number of threads to simulate
+     * @param {string} sortType - Type of sorting: 'threshold' or 'random'
+     * @param {HTMLCanvasElement} maskCanvas - Optional mask canvas
+     * @param {number} maskThreshold - Threshold for mask (0-255)
      */
-
-    // Modified processImage function without chunking
-    processImage: function(canvas, sortType, threshold, direction = 'right') {
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Add some debug logging
-    console.log(`Processing image with direction: ${direction}`);
-    
-    // Disable smoothing at the beginning
-    this.disableSmoothing(ctx);
-    
-    // Get image data from canvas
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Route to the appropriate sorting algorithm based on direction
-    const sortedData = this.sortPixelsByDirection(imageData, sortType, threshold, direction);
-    
-    // Put the sorted data back on the canvas
-    ctx.putImageData(sortedData, 0, 0);
-
-    // Disable smoothing again after putting image data
-    this.disableSmoothing(ctx);
-
-    },
-
-    // Modified router function without chunking parameter
-    
-    sortPixelsByDirection: function(imageData, sortType, threshold, direction) {
-        // Log parameters to help with debugging
-        console.log(`Direction: ${direction}, SortType: ${sortType}, Threshold: ${threshold}`);
-        
-        // Convert the direction string to a boolean 'reverse' parameter
-        let reverse = false;
-        let isVertical = false;
-        
-        if (direction === 'left' || direction === 'up') {
-            reverse = true;
-        }
-        
-        if (direction === 'up' || direction === 'down') {
-            isVertical = true;
-        }
-        
-        // Call processPixels directly instead of going through wrapper functions
-        return this.processPixels(imageData, sortType, threshold, reverse, isVertical);
-    },
-
-/*
-    //processImage with chunk
-    processImage: function(canvas, sortType, threshold, direction = 'right', chunkSetting = 0) {
+    processImage: function(canvas, {
+        sortParameter = 'brightness',
+        lowerThreshold = 0.25,
+        upperThreshold = 0.8, 
+        angle = 0,
+        falloffChance = 100,
+        threadCount = 4,
+        sortType = 'threshold',
+        maskCanvas = null,
+        maskThreshold = 255
+    } = {}) {
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
-        // Disable smoothing at the beginning
+        
+        console.log(`Processing image: ${sortParameter}, thresholds: ${lowerThreshold}-${upperThreshold}, angle: ${angle}°`);
+        
+        // Disable image smoothing for crisp pixels
         this.disableSmoothing(ctx);
         
-        // Get image data from canvas
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Get original image data
+        const originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Route to the appropriate sorting algorithm based on direction
-        const sortedData = this.sortPixelsByDirection(imageData, sortType, threshold, direction, chunkSetting);
+        // Get mask data if provided
+        let maskData = null;
+        let useMask = false;
+        if (maskCanvas) {
+            const maskCtx = maskCanvas.getContext('2d');
+            maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data;
+            useMask = true;
+        }
+        
+        // If rotation is needed, create a rotated copy of the image
+        let imageData = originalImageData;
+        let paddingAddedToImage = false;
+        let xPadding = 0;
+        let yPadding = 0;
+        
+        if (angle !== 0) {
+            const result = this.rotateImage(originalImageData, angle);
+            imageData = result.imageData;
+            paddingAddedToImage = true;
+            xPadding = result.xPadding;
+            yPadding = result.yPadding;
+        }
+        
+        // Process the image using simulated multi-threading
+        const sortedData = this.processImageWithThreads(
+            imageData, 
+            sortParameter, 
+            lowerThreshold, 
+            upperThreshold, 
+            threadCount, 
+            falloffChance, 
+            sortType,
+            useMask,
+            maskData,
+            maskThreshold,
+            angle,
+            paddingAddedToImage,
+            xPadding,
+            yPadding
+        );
+        
+        // If we rotated the image, rotate it back
+        let finalImageData = sortedData;
+        if (angle !== 0) {
+            // Rotate back to original orientation
+            const result = this.rotateImage(sortedData, -angle);
+            // Crop to original size
+            finalImageData = this.cropToOriginalSize(
+                result.imageData, 
+                originalImageData.width, 
+                originalImageData.height
+            );
+        }
         
         // Put the sorted data back on the canvas
-        ctx.putImageData(sortedData, 0, 0);
-
-        // Disable smoothing again after putting image data
+        ctx.putImageData(finalImageData, 0, 0);
+        
+        // Ensure smoothing is still disabled
         this.disableSmoothing(ctx);
     },
     
-    // Router to direct to either horizontal or vertical sorting
-    sortPixelsByDirection: function(imageData, sortType, threshold, direction, chunkSetting) {
-        switch (direction) {
-            case 'right':
-                return this.sortPixelsHorizontal(imageData, sortType, threshold, false, chunkSetting);
-            case 'left':
-                return this.sortPixelsHorizontal(imageData, sortType, threshold, true, chunkSetting);
-            case 'down':
-                return this.sortPixelsVertical(imageData, sortType, threshold, false, chunkSetting);
-            case 'up':
-                return this.sortPixelsVertical(imageData, sortType, threshold, true, chunkSetting);
-            default:
-                return this.sortPixelsHorizontal(imageData, sortType, threshold, false, chunkSetting);
-        }
-    },
-*/
-
-
-    // Generic function to process pixels one row/column at a time with optional chunking
-    
-    // Simplified processPixels function without chunking
-    processPixels: function(imageData, sortType, threshold, reverse, isVertical) {
+    /**
+     * Simulates multi-threading by dividing the image into chunks and processing each row
+     */
+    processImageWithThreads: function(
+        imageData, 
+        sortParameter, 
+        lowerThreshold, 
+        upperThreshold, 
+        threadCount, 
+        falloffChance,
+        sortType,
+        useMask,
+        maskData,
+        maskThreshold,
+        angle,
+        paddingAddedToImage,
+        xPadding,
+        yPadding
+    ) {
         const { width, height, data } = imageData;
         
-        // Determine if we're processing horizontal rows or vertical columns
-        const primaryDimension = isVertical ? width : height;
-        const secondaryDimension = isVertical ? height : width;
+        // Create a copy of the image data to work with
+        const resultData = new Uint8ClampedArray(data);
         
-        // Process each line of pixels (full width or height)
-        for (let primary = 0; primary < primaryDimension; primary++) {
-            this.processSingleLine(primary, secondaryDimension, data, width, height, sortType, threshold, reverse, isVertical);
-        }
+        // Process in chunks to simulate threading
+        const rowsPerThread = Math.ceil(height / threadCount);
         
-        return imageData;
-    },
-
-
-    // Fixed wrapper functions
-    sortPixelsHorizontal: function(imageData, sortType, threshold, reverse) {
-        return this.processPixels(imageData, sortType, threshold, reverse, false);
-    },
-
-    sortPixelsVertical: function(imageData, sortType, threshold, reverse) {
-        return this.processPixels(imageData, sortType, threshold, reverse, true);
-    },
-
-
-
-    /*
-    //processPixels with chunks
-    processPixels: function(imageData, sortType, threshold, reverse, chunkSetting, isVertical) {
-        const { width, height, data } = imageData;
-        
-        // Determine if we're processing horizontal rows or vertical columns
-        const primaryDimension = isVertical ? width : height;
-        const secondaryDimension = isVertical ? height : width;
-        
-        // Skip chunking if chunkSetting is 0
-        if (chunkSetting === 0) {
-            // Process each line of pixels (full width or height)
-            for (let primary = 0; primary < primaryDimension; primary++) {
-                this.processSingleLine(primary, secondaryDimension, data, width, height, sortType, threshold, reverse, isVertical);
+        // Process each "thread" chunk
+        for (let threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+            const startRow = threadIndex * rowsPerThread;
+            const endRow = Math.min(startRow + rowsPerThread, height);
+            
+            // Process each row in this thread's chunk
+            for (let y = startRow; y < endRow; y++) {
+                this.processRow(
+                    y,
+                    width,
+                    resultData,
+                    width,
+                    height,
+                    sortParameter,
+                    lowerThreshold,
+                    upperThreshold,
+                    falloffChance,
+                    sortType,
+                    useMask,
+                    maskData,
+                    maskThreshold,
+                    angle,
+                    paddingAddedToImage,
+                    xPadding,
+                    yPadding
+                );
             }
-        } else {
-            // Calculate chunk size based on slider value (1-100)
-            const minChunkSize = 1;
-            const maxChunkSize = Math.max(5, Math.floor(primaryDimension / 10));
-            const factor = 1 - (chunkSetting / 100); // Higher values = smaller chunks
-            const effectiveChunkSize = Math.max(minChunkSize, Math.round(maxChunkSize * factor));
+        }
+        
+        // Create a new ImageData object with the processed data
+        return new ImageData(resultData, width, height);
+    },
+    
+    /**
+     * Process a single row of pixels
+     */
+    processRow: function(
+        rowIndex,
+        rowLength,
+        data,
+        imageWidth,
+        imageHeight,
+        sortParameter,
+        lowerThreshold,
+        upperThreshold,
+        falloffChance,
+        sortType,
+        useMask,
+        maskData,
+        maskThreshold,
+        angle,
+        paddingAddedToImage,
+        xPadding,
+        yPadding
+    ) {
+        // For processing intervals within the row
+        let startOfInterval = -1;
+        let endOfInterval = -1;
+        
+        // Process each pixel in the row
+        for (let x = 0; x < rowLength; x++) {
+            // Calculate pixel index
+            const pixelIndex = (rowIndex * imageWidth + x) * 4;
             
-            // Process image in chunks
-            let shouldFlipChunk = false; // Toggle for alternating chunk flips
+            // Get pixel color
+            const r = data[pixelIndex];
+            const g = data[pixelIndex + 1];
+            const b = data[pixelIndex + 2];
+            const a = data[pixelIndex + 3];
             
-            for (let chunkStart = 0; chunkStart < primaryDimension; chunkStart += effectiveChunkSize) {
-                // Calculate the end of this chunk
-                const chunkEnd = Math.min(chunkStart + effectiveChunkSize, primaryDimension);
+            // Skip fully transparent pixels
+            if (a === 0) continue;
+            
+            // Calculate value based on sort parameter
+            let value = 0;
+            switch (sortParameter) {
+                case 'brightness':
+                    value = (r + g + b) / (3 * 255); // Normalize to 0-1
+                    break;
+                case 'hue':
+                    value = this.calculateHue(r, g, b);
+                    break;
+                case 'saturation':
+                    value = this.calculateSaturation(r, g, b);
+                    break;
+            }
+            
+            // Check mask if using one
+            let maskApproved = !useMask;
+            if (useMask && maskData) {
+                // Calculate unrotated coordinates to check mask
+                let unrotatedX = x;
+                let unrotatedY = rowIndex;
                 
-                if (isVertical) {
-                    // Processing columns (vertical sorting)
-                    // For vertical sorting, process each column normally and we'll handle flipping later
-                    for (let primary = chunkStart; primary < chunkEnd; primary++) {
-                        // Process each column normally
-                        this.processSingleLine(primary, secondaryDimension, data, width, height, sortType, threshold, reverse, isVertical);
-                    }
+                if (paddingAddedToImage && angle !== 0) {
+                    // Convert current coordinates to unrotated coordinates using rotation matrix
+                    const centerX = imageWidth / 2;
+                    const centerY = imageHeight / 2;
                     
-                    // If this chunk should be flipped, flip the columns horizontally
-                    if (shouldFlipChunk) {
-                        // Create a temporary buffer for this chunk's data
-                        const chunkData = new Uint8ClampedArray((chunkEnd - chunkStart) * secondaryDimension * 4);
-                        
-                        // Copy the chunk data into the buffer
-                        for (let y = 0; y < secondaryDimension; y++) {
-                            for (let x = 0; x < (chunkEnd - chunkStart); x++) {
-                                const srcIndex = (y * width + (chunkStart + x)) * 4;
-                                const destIndex = (y * (chunkEnd - chunkStart) + x) * 4;
-                                
-                                chunkData[destIndex] = data[srcIndex];
-                                chunkData[destIndex + 1] = data[srcIndex + 1];
-                                chunkData[destIndex + 2] = data[srcIndex + 2];
-                                chunkData[destIndex + 3] = data[srcIndex + 3];
-                            }
-                        }
-                        
-                        // Write the chunk data back in flipped order (horizontally)
-                        for (let y = 0; y < secondaryDimension; y++) {
-                            for (let x = 0; x < (chunkEnd - chunkStart); x++) {
-                                const destIndex = (y * width + (chunkStart + x)) * 4;
-                                const srcIndex = (y * (chunkEnd - chunkStart) + ((chunkEnd - chunkStart) - 1 - x)) * 4;
-                                
-                                data[destIndex] = chunkData[srcIndex];
-                                data[destIndex + 1] = chunkData[srcIndex + 1];
-                                data[destIndex + 2] = chunkData[srcIndex + 2];
-                                data[destIndex + 3] = chunkData[srcIndex + 3];
-                            }
-                        }
-                    }
-                } else {
-                    // Processing rows (horizontal sorting)
-                    if (shouldFlipChunk) {
-                        // For horizontal sorting with flipping, process rows in reverse order
-                        for (let primary = chunkEnd - 1; primary >= chunkStart; primary--) {
-                            this.processSingleLine(primary, secondaryDimension, data, width, height, sortType, threshold, reverse, isVertical);
-                        }
-                    } else {
-                        // Process rows in normal order
-                        for (let primary = chunkStart; primary < chunkEnd; primary++) {
-                            this.processSingleLine(primary, secondaryDimension, data, width, height, sortType, threshold, reverse, isVertical);
-                        }
-                    }
+                    // Translate to origin
+                    const translatedX = x - centerX;
+                    const translatedY = rowIndex - centerY;
+                    
+                    // Rotate by -angle
+                    const radians = angle * (Math.PI / 180);
+                    const rotateSine = Math.sin(radians);
+                    const rotateCosine = Math.cos(radians);
+                    
+                    const rotatedX = translatedX * rotateCosine - translatedY * rotateSine;
+                    const rotatedY = translatedX * rotateSine + translatedY * rotateCosine;
+                    
+                    // Translate back
+                    unrotatedX = rotatedX + centerX - xPadding;
+                    unrotatedY = rotatedY + centerY - yPadding;
                 }
                 
-                // Toggle the flip state for the next chunk
-                shouldFlipChunk = !shouldFlipChunk;
-            }
-        }
-        
-        return imageData;
-    },
-   
-    */
-    // Process a single line (row or column) of pixels
-    
-    processSingleLine: function(primary, length, data, width, height, sortType, threshold, reverse, isVertical) {
-        // Extract pixels from this line
-        const line = [];
-        
-        for (let secondary = 0; secondary < length; secondary++) {
-            // Calculate pixel index based on whether we're processing vertically or horizontally
-            const x = isVertical ? primary : secondary;
-            const y = isVertical ? secondary : primary;
-            const index = (y * width + x) * 4;
-            
-            const r = data[index];
-            const g = data[index + 1];
-            const b = data[index + 2];
-            const a = data[index + 3];
-            
-            line.push({ r, g, b, a });
-        }
-        
-        // Apply the selected sorting algorithm
-        let sortedLine;
-        switch (sortType) {
-            case 'brightness':
-                sortedLine = this.brightnessSort(line, threshold, reverse);
-                break;
-            case 'saturation':
-                sortedLine = this.saturationSort(line, threshold, reverse);
-                break;
-            case 'hue':
-                sortedLine = this.hueSort(line, threshold, reverse);
-                break;
-            case 'random':
-                sortedLine = this.randomSort(line, reverse);
-                break;
-            default:
-                sortedLine = this.brightnessSort(line, threshold, reverse);
-        }
-        
-        // Write pixels back to the image data
-        for (let secondary = 0; secondary < sortedLine.length; secondary++) {
-            const pixel = sortedLine[secondary];
-            
-            // Calculate index based on whether we're processing vertically or horizontally
-            const x = isVertical ? primary : secondary;
-            const y = isVertical ? secondary : primary;
-            const index = (y * width + x) * 4;
-            
-            data[index] = pixel.r;
-            data[index + 1] = pixel.g;
-            data[index + 2] = pixel.b;
-            data[index + 3] = pixel.a;
-        }
-    },
-    
-    /**
-     * My implementation of brightness-based pixel sorting
-     */
-    brightnessSort: function(pixels, threshold, reverse) {
-        const aboveThreshold = [];
-        const belowThreshold = [];
-        
-        // Divide pixels based on brightness threshold
-        for (let i = 0; i < pixels.length; i++) {
-            const pixel = pixels[i];
-            const brightness = (pixel.r + pixel.g + pixel.b) / (3 * 255); // Normalize to 0-1
-            
-            if (brightness >= threshold) {
-                aboveThreshold.push(pixel);
-            } else {
-                belowThreshold.push(pixel);
-            }
-        }
-        
-        // Sort pixels above threshold by brightness
-        aboveThreshold.sort((a, b) => {
-            const brightnessA = (a.r + a.g + a.b) / 3;
-            const brightnessB = (b.r + b.g + b.b) / 3;
-            // Use reverse parameter to determine sort direction
-            return reverse ? brightnessB - brightnessA : brightnessA - brightnessB;
-        });
-        
-        // Combine sorted and unsorted pixels
-        return [...aboveThreshold, ...belowThreshold];
-    },
-    
-    /**
-     * My implementation of saturation-based pixel sorting
-     */
-    saturationSort: function(pixels, threshold, reverse) {
-        const aboveThreshold = [];
-        const belowThreshold = [];
-        
-        // Divide pixels based on saturation threshold
-        for (let i = 0; i < pixels.length; i++) {
-            const pixel = pixels[i];
-            const saturation = this.calculateSaturation(pixel.r, pixel.g, pixel.b);
-            
-            if (saturation >= threshold) {
-                aboveThreshold.push(pixel);
-            } else {
-                belowThreshold.push(pixel);
-            }
-        }
-        
-        // Sort pixels above threshold by saturation
-        aboveThreshold.sort((a, b) => {
-            const satA = this.calculateSaturation(a.r, a.g, a.b);
-            const satB = this.calculateSaturation(b.r, b.g, b.b);
-            // Use reverse parameter to determine sort direction
-            return reverse ? satB - satA : satA - satB;
-        });
-        
-        // Combine sorted and unsorted pixels
-        return [...aboveThreshold, ...belowThreshold];
-    },
-    
-    /**
-     * My implementation of hue-based pixel sorting
-     */
-    hueSort: function(pixels, threshold, reverse) {
-        const aboveThreshold = [];
-        const belowThreshold = [];
-        
-        // Divide pixels based on hue threshold
-        for (let i = 0; i < pixels.length; i++) {
-            const pixel = pixels[i];
-            const hue = this.calculateHue(pixel.r, pixel.g, pixel.b);
-            
-            if (hue >= threshold) {
-                aboveThreshold.push(pixel);
-            } else {
-                belowThreshold.push(pixel);
-            }
-        }
-        
-        // Sort pixels above threshold by hue
-        aboveThreshold.sort((a, b) => {
-            const hueA = this.calculateHue(a.r, a.g, a.b);
-            const hueB = this.calculateHue(b.r, b.g, b.b);
-            // Use reverse parameter to determine sort direction
-            return reverse ? hueB - hueA : hueA - hueB;
-        });
-        
-        // Combine sorted and unsorted pixels
-        return [...aboveThreshold, ...belowThreshold];
-    },
-    
-    /**
-     * My implementation of random-segmented pixel sorting
-     * This divides the line into random chunks and sorts each chunk separately
-     */
-    randomSort: function(pixels, reverse) {
-        // Generate a random division factor
-        const divideUpList = Math.floor(Math.random() * 44 + 17);
-        
-        // Calculate how many pixels per division
-        const dividedPixelCount = Math.floor(pixels.length / divideUpList);
-        if (dividedPixelCount < 1) return pixels; // Return original if divisions are too small
-        
-        // Handle leftover pixels
-        const leftOverPixels = pixels.length % dividedPixelCount;
-        
-        const result = [];
-        
-        // Process pixels in chunks
-        for (let i = 0; i < pixels.length;) {
-            // Handle the last remaining pixels that don't form a complete chunk
-            if (leftOverPixels !== 0 && i === (pixels.length - leftOverPixels)) {
-                // Add remaining pixels directly
-                for (let p = i; p < pixels.length; p++) {
-                    result.push(pixels[p]);
+                // Check if within mask bounds
+                if (
+                    unrotatedX >= 0 && 
+                    unrotatedX < maskData.width && 
+                    unrotatedY >= 0 && 
+                    unrotatedY < maskData.height
+                ) {
+                    const maskIndex = (unrotatedY * maskData.width + unrotatedX) * 4;
+                    maskApproved = maskData[maskIndex + 3] >= maskThreshold;
                 }
-                i += dividedPixelCount;
-            } else {
-                // Define the current chunk's boundaries
-                const partitionEnd = Math.min(i + dividedPixelCount, pixels.length);
-                
-                // Extract the chunk
-                const subPixelList = pixels.slice(i, partitionEnd);
-                
-                // Sort this chunk by brightness
-                subPixelList.sort((a, b) => {
-                    const brightnessA = (a.r + a.g + a.b) / 3;
-                    const brightnessB = (b.r + b.g + b.b) / 3;
-                    // Use reverse parameter to determine sort direction
-                    return reverse ? brightnessB - brightnessA : brightnessA - brightnessB;
-                });
-                
-                // Add sorted chunk to result
-                result.push(...subPixelList);
-                
-                // Move to next chunk
-                i = partitionEnd;
             }
+            
+            // Check if this pixel is within the thresholds and mask-approved
+            const withinThreshold = value >= lowerThreshold && value <= upperThreshold;
+            
+            if (maskApproved && withinThreshold) {
+                // This pixel meets criteria for sorting
+                if (startOfInterval === -1) {
+                    // Start of a new interval
+                    startOfInterval = x;
+                    
+                    if (sortType === 'threshold') {
+                        // Continue to find end of interval
+                        continue;
+                    } else if (sortType === 'random') {
+                        // For random sort type, calculate a random length interval
+                        const rando = Math.floor(Math.random() * 100) + 1;
+                        endOfInterval = Math.min(x + Math.floor(rowLength * 0.01) + rando, rowLength - 1);
+                        x = endOfInterval + 1;
+                    }
+                } else if (x < rowLength - 1) {
+                    // Within an interval, but not at the end of the row
+                    if (sortType === 'threshold') {
+                        continue;
+                    }
+                }
+                // Otherwise, we're at the end of the row with an open interval
+            } else {
+                // This pixel doesn't meet criteria for sorting
+                if (startOfInterval === -1) {
+                    // Not currently in an interval, nothing to do
+                    continue;
+                }
+                // Otherwise, we've reached the end of the current interval
+            }
+            
+            // If we've come this far, we have an interval to sort
+            if (sortType === 'threshold') {
+                endOfInterval = x - 1;
+            }
+            
+            // Apply falloff chance - randomly skip some intervals
+            if (Math.random() * 100 > falloffChance) {
+                startOfInterval = -1;
+                endOfInterval = -1;
+                continue;
+            }
+            
+            // Ensure valid interval
+            if (startOfInterval !== -1 && endOfInterval !== -1 && endOfInterval >= startOfInterval) {
+                this.sortInterval(
+                    startOfInterval,
+                    endOfInterval,
+                    rowIndex,
+                    data,
+                    imageWidth,
+                    sortParameter
+                );
+            }
+            
+            // Reset interval
+            startOfInterval = -1;
+            endOfInterval = -1;
         }
         
-        return result;
+        // Handle case where interval extends to the end of the row
+        if (startOfInterval !== -1) {
+            endOfInterval = rowLength - 1;
+            
+            // Apply falloff chance
+            if (Math.random() * 100 <= falloffChance) {
+                this.sortInterval(
+                    startOfInterval,
+                    endOfInterval,
+                    rowIndex,
+                    data,
+                    imageWidth,
+                    sortParameter
+                );
+            }
+        }
+    },
+    
+    /**
+     * Sort pixels in an interval according to the selected parameter
+     */
+    sortInterval: function(
+        startIdx,
+        endIdx,
+        rowIndex,
+        data,
+        imageWidth,
+        sortParameter
+    ) {
+        // Extract the interval of pixels
+        const intervalPixels = [];
+        
+        for (let x = startIdx; x <= endIdx; x++) {
+            const pixelIndex = (rowIndex * imageWidth + x) * 4;
+            
+            intervalPixels.push({
+                r: data[pixelIndex],
+                g: data[pixelIndex + 1],
+                b: data[pixelIndex + 2],
+                a: data[pixelIndex + 3],
+                originalIndex: x
+            });
+        }
+        
+        // Sort the pixels based on the selected parameter
+        intervalPixels.sort((a, b) => {
+            let valueA, valueB;
+            
+            switch (sortParameter) {
+                case 'brightness':
+                    valueA = (a.r + a.g + a.b) / 3;
+                    valueB = (b.r + b.g + b.b) / 3;
+                    break;
+                case 'hue':
+                    valueA = this.calculateHue(a.r, a.g, a.b);
+                    valueB = this.calculateHue(b.r, b.g, b.b);
+                    break;
+                case 'saturation':
+                    valueA = this.calculateSaturation(a.r, a.g, a.b);
+                    valueB = this.calculateSaturation(b.r, b.g, b.b);
+                    break;
+                default:
+                    valueA = (a.r + a.g + a.b) / 3;
+                    valueB = (b.r + b.g + b.b) / 3;
+            }
+            
+            // Always sort ascending
+            return valueA - valueB;
+        });
+        
+        // Write sorted pixels back to the data array
+        for (let i = 0; i < intervalPixels.length; i++) {
+            const pixelToPlace = intervalPixels[i];
+            const targetPosition = startIdx + i;
+            
+            const pixelIndex = (rowIndex * imageWidth + targetPosition) * 4;
+            
+            data[pixelIndex] = pixelToPlace.r;
+            data[pixelIndex + 1] = pixelToPlace.g;
+            data[pixelIndex + 2] = pixelToPlace.b;
+            data[pixelIndex + 3] = pixelToPlace.a;
+        }
+    },
+    
+    /**
+     * Rotates an image by the specified angle, adding padding to accommodate rotation
+     */
+    rotateImage: function(imageData, angle) {
+        const { width, height, data } = imageData;
+        
+        // Create a canvas for rotation
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate the size needed for rotated image
+        const radians = angle * (Math.PI / 180);
+        const cos = Math.abs(Math.cos(radians));
+        const sin = Math.abs(Math.sin(radians));
+        
+        const diagonal = Math.ceil(Math.sqrt(width * width + height * height));
+        const newWidth = diagonal;
+        const newHeight = diagonal;
+        
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Calculate padding
+        const xPadding = (newWidth - width) / 2;
+        const yPadding = (newHeight - height) / 2;
+        
+        // Clear the canvas
+        ctx.clearRect(0, 0, newWidth, newHeight);
+        
+        // Put the original image data on canvas
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.putImageData(imageData, 0, 0);
+        
+        // Translate and rotate
+        ctx.translate(newWidth / 2, newHeight / 2);
+        ctx.rotate(radians);
+        ctx.translate(-width / 2, -height / 2);
+        
+        // Draw the image
+        ctx.drawImage(tempCanvas, 0, 0);
+        
+        // Get the rotated image data
+        const rotatedImageData = ctx.getImageData(0, 0, newWidth, newHeight);
+        
+        return { 
+            imageData: rotatedImageData, 
+            xPadding, 
+            yPadding 
+        };
+    },
+    
+    /**
+     * Crops rotated image back to original size
+     */
+    cropToOriginalSize: function(imageData, originalWidth, originalHeight) {
+        const { width, height, data } = imageData;
+        
+        // Create temporary canvas for cropping
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.putImageData(imageData, 0, 0);
+        
+        // Calculate cropping coordinates
+        const xOffset = Math.floor((width - originalWidth) / 2);
+        const yOffset = Math.floor((height - originalHeight) / 2);
+        
+        // Crop the image
+        const croppedImageData = ctx.getImageData(
+            xOffset, 
+            yOffset, 
+            originalWidth, 
+            originalHeight
+        );
+        
+        return croppedImageData;
     },
     
     /**
@@ -437,6 +501,10 @@ const PixelSorter = {
      * Helper function to calculate hue from RGB values
      */
     calculateHue: function(r, g, b) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         
@@ -459,35 +527,82 @@ const PixelSorter = {
     },
     
     /**
-     * Simple color inversion effect
+     * Creates a mask canvas from the current image based on brightness
      */
-    invertImage: function(canvas) {
-        if (!canvas) return;
+    createMaskFromImage: function(canvas, threshold = 0.5) {
+        if (!canvas) return null;
         
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) return null;
+        
+        // Create a mask canvas
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = canvas.width;
+        maskCanvas.height = canvas.height;
+        
+        const maskCtx = maskCanvas.getContext('2d');
         
         // Get image data
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         
-        // Invert each pixel color
+        // Create mask data
+        const maskData = new Uint8ClampedArray(data.length);
+        
+        // Convert image to mask based on brightness
         for (let i = 0; i < data.length; i += 4) {
-            data[i] = 255 - data[i];         // Red
-            data[i + 1] = 255 - data[i + 1]; // Green
-            data[i + 2] = 255 - data[i + 2]; // Blue
-            // Alpha channel (i + 3) remains unchanged
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            // Calculate brightness
+            const brightness = (r + g + b) / (3 * 255);
+            
+            // Set alpha based on brightness threshold
+            const alpha = brightness > threshold ? 255 : 0;
+            
+            // Set mask pixel - white with variable alpha
+            maskData[i] = 255;     // R
+            maskData[i + 1] = 255; // G
+            maskData[i + 2] = 255; // B
+            maskData[i + 3] = alpha; // A
         }
         
-        // Put the modified image data back
+        // Put mask data on mask canvas
+        maskCtx.putImageData(new ImageData(maskData, canvas.width, canvas.height), 0, 0);
+        
+        return maskCanvas;
+    },
+    
+    /**
+     * Inverts a mask
+     */
+    invertMask: function(maskCanvas) {
+        if (!maskCanvas) return;
+        
+        const ctx = maskCanvas.getContext('2d');
+        if (!ctx) return;
+        
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        const data = imageData.data;
+        
+        // Invert alpha channel
+        for (let i = 0; i < data.length; i += 4) {
+            data[i + 3] = 255 - data[i + 3]; // Invert alpha
+        }
+        
+        // Put modified data back
         ctx.putImageData(imageData, 0, 0);
     },
-
+    
+    /**
+     * Disables image smoothing on a canvas context
+     */
     disableSmoothing: function(ctx) {
         ctx.imageSmoothingEnabled = false;
         ctx.mozImageSmoothingEnabled = false;
         ctx.webkitImageSmoothingEnabled = false;
         ctx.msImageSmoothingEnabled = false;
     }
-
 };

@@ -2,11 +2,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global variables
     let originalImageUrl = null;
     let originalFileName = null;
-    let currentSortType = 'brightness'; // Default sort type
-    let currentThreshold = 0.5; // Default threshold
-    // Add this with the other global variables at the top of script.js
-    let currentSortDirection = 'right'; // Default sort direction
-    
 
     // Zoom and pan variables
     let scale = 1;
@@ -15,384 +10,260 @@ document.addEventListener('DOMContentLoaded', function() {
     let isDragging = false;
     let lastMouseX, lastMouseY;
 
-    // UI Elements
-    const fileMenuButton = document.querySelector('.menu .menu-button');
-    const fileDropdown = document.querySelector('.menu .menu-content');
-    const thresholdSlider = document.getElementById('thresholdSlider');
-    const thresholdValue = document.getElementById('thresholdValue');
-    const sortTypeSelector = document.getElementById('sortTypeSelector');
-    const sortButton = document.getElementById('sortButton');
-    
+    // Get DOM elements
+    const fileMenuButton = document.getElementById('fileMenuButton');
+    const fileDropdown = document.getElementById('fileDropdown');
+    const openImageButton = document.getElementById('openImage');
+    const saveImageButton = document.getElementById('saveImage');
+    const imageCanvas = document.getElementById('imageView');
+    const uploadContainer = document.getElementById('uploadContainer');
+    const statusMessage = document.getElementById('statusMessage');
+
     // Initialize UI
-    if (thresholdSlider && thresholdValue) {
-        thresholdSlider.value = currentThreshold;
-        thresholdValue.textContent = currentThreshold.toFixed(2);
-        
-        // Add event listener for threshold change
-        thresholdSlider.addEventListener('input', function() {
-            currentThreshold = parseFloat(this.value);
-            thresholdValue.textContent = currentThreshold.toFixed(2);
-        });
-    }
-    
-    // Initialize sort type selector
-    if (sortTypeSelector) {
-        sortTypeSelector.value = currentSortType;
-        
-        // Add event listener for sort type change
-        sortTypeSelector.addEventListener('change', function() {
-            currentSortType = this.value;
-            console.log(`Sort type changed to: ${currentSortType}`);
-            
-            // Update UI based on selected sort type
-            updateUIBasedOnSortType(currentSortType);
-        });
-    }
-    
-    // Function to update UI elements based on selected sort type
-    function updateUIBasedOnSortType(sortType) {
-        const thresholdControl = document.querySelector('.threshold-control');
-        
-        // Show threshold control for all except random
-        if (sortType === 'random') {
-            if (thresholdControl) thresholdControl.style.display = 'none';
-        } else {
-            if (thresholdControl) thresholdControl.style.display = 'block';
+    function initUI() {
+        // Set up menu toggle
+        if (fileMenuButton && fileDropdown) {
+            fileMenuButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleDropdown(fileDropdown);
+            });
         }
-    }
 
-    // sortDirectionSelector event listener setup
-    const sortDirectionSelector = document.getElementById('sortDirectionSelector');
-    if (sortDirectionSelector) {
-        sortDirectionSelector.value = currentSortDirection;
-        
-        // Add event listener for sort direction change
-        sortDirectionSelector.addEventListener('change', function() {
-            currentSortDirection = this.value;
-            console.log(`Sort direction changed to: ${currentSortDirection}`);
-        });
-    }
-
-
-    // Initialize UI based on default sort type
-    updateUIBasedOnSortType(currentSortType);
-
-    /*
-
-    // Add after your other UI initialization code
-    const chunkSlider = document.getElementById('chunkSlider');
-    const chunkValue = document.getElementById('chunkValue');
-    
-    // And update the corresponding event listener:
-    if (chunkSlider && chunkValue) {
-        chunkSlider.value = currentChunkWidth;
-        chunkValue.textContent = currentChunkWidth;
-        
-        // Add event listener for chunk width change
-        chunkSlider.addEventListener('input', function() {
-            currentChunkWidth = parseInt(this.value) || 0;
-            chunkValue.textContent = currentChunkWidth;
-        });
-    }
-    */
-
-    // Toggle dropdown when clicking on the File button
-    if (fileMenuButton && fileDropdown) {
-        fileMenuButton.addEventListener('click', function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            // Toggle the dropdown
-            if (fileDropdown.classList.contains('show-menu')) {
-                fileDropdown.classList.remove('show-menu');
-            } else {
-                fileDropdown.classList.add('show-menu');
-            }
-        });
-    }
-    
-    // Close the dropdown when clicking anywhere else
-    document.addEventListener('click', function(event) {
-        if (fileDropdown && fileDropdown.classList.contains('show-menu') && 
-            !fileDropdown.contains(event.target) && 
-            event.target !== fileMenuButton) {
-            fileDropdown.classList.remove('show-menu');
-        }
-    });
-    
-    // Menu item click handlers
-    const menuItems = fileDropdown ? fileDropdown.querySelectorAll('button') : [];
-    menuItems.forEach(item => {
-        item.addEventListener('click', function(event) {
-            event.stopPropagation();
-            
-            console.log(this.id + ' was clicked');
-            
-            // Perform action based on which button was clicked
-            switch(this.id) {
-                case 'openImage':
-                    handleOpenImage();
-                    break;
-                case 'saveImage':
-                    handleSaveImage();
-                    break;
-                case 'restoreImage':
-                    handleRestoreImage();
-                    break;
-            }
-            
-            // Close the dropdown after action
-            if (fileDropdown) {
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (fileDropdown && 
+                fileDropdown.classList.contains('show-menu') && 
+                !fileDropdown.contains(event.target) && 
+                event.target !== fileMenuButton) {
                 fileDropdown.classList.remove('show-menu');
             }
         });
-    });
 
-    
-    
-    // Handle Open Image
+        // Set up file menu actions
+        if (openImageButton) {
+            openImageButton.addEventListener('click', handleOpenImage);
+        }
+        
+        if (saveImageButton) {
+            saveImageButton.addEventListener('click', handleSaveImage);
+        }
+
+        updateStatus('Ready. Open an image to begin.');
+    }
+
+    // Toggle dropdown visibility
+    function toggleDropdown(dropdown) {
+        dropdown.classList.toggle('show-menu');
+    }
+
+    // Update status message
+    function updateStatus(message) {
+        console.log(message);
+        if (statusMessage) {
+            statusMessage.textContent = message;
+        }
+    }
+
+    // Get upload button
+    const uploadButton = document.getElementById('uploadButton');
+
+    // Add event listener to the upload button
+    if (uploadButton) {
+        uploadButton.addEventListener('click', handleOpenImage);
+    }
+
+    // Handle opening an image
     function handleOpenImage() {
-        console.log('Open Image action');
-    
-        // Create an invisible file input element
+        updateStatus('Selecting image...');
+        
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
-        fileInput.accept = 'image/*'; // Accept only image files
+        fileInput.accept = 'image/*';
         
-        // Trigger click on the file input
-        fileInput.click();
-        
-        // Handle file selection
-        fileInput.addEventListener('change', function(e) {
+        fileInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 const selectedFile = this.files[0];
-    
-                // Store the original filename
                 originalFileName = selectedFile.name;
                 
-                // Create a URL for the selected file
                 const imageUrl = URL.createObjectURL(selectedFile);
-                
-                // Get the canvas element
-                const canvas = document.getElementById('imageView');
-                if (!canvas) return;
-                
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return;
-                
-                // Create an image object to load the selected file
-                const img = new Image();
-                
-                img.onload = function() {
-                    // Resize canvas to fit the image
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-
-                    // Get the context and disable smoothing
-                    const ctx = canvas.getContext('2d');
-                    disableSmoothing(ctx);
+                loadImageToCanvas(imageUrl).then(() => {
+                    originalImageUrl = imageUrl;
                     
-                    // Draw the image on the canvas
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Hide the upload container
-                    const uploadContainer = document.getElementById('uploadContainer');
+                    // Hide upload container
                     if (uploadContainer) {
                         uploadContainer.style.display = 'none';
                     }
                     
                     // Set up zoom and pan
-                    setupImageViewport(canvas);
-                };
-                
-                // Set the image source to the selected file
-                img.src = imageUrl;
-                
-                // Store original image URL for restoration
-                originalImageUrl = imageUrl;
-                console.log('Image loaded successfully');
+                    setupImageViewport();
+                    updateStatus('Image loaded: ' + originalFileName);
+                    
+                    // Close dropdown
+                    if (fileDropdown) {
+                        fileDropdown.classList.remove('show-menu');
+                    }
+                }).catch(error => {
+                    updateStatus('Error loading image: ' + error.message);
+                });
             }
         });
+        
+        fileInput.click();
     }
-    
-    
-    // Handle Save Image
+
+    // Load an image to the canvas
+    function loadImageToCanvas(imageUrl) {
+        return new Promise((resolve, reject) => {
+            if (!imageCanvas) {
+                reject(new Error('Canvas element not found'));
+                return;
+            }
+            
+            const ctx = imageCanvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('Could not get canvas context'));
+                return;
+            }
+            
+            const img = new Image();
+            
+            img.onload = function() {
+                // Resize canvas to fit the image
+                imageCanvas.width = img.width;
+                imageCanvas.height = img.height;
+                
+                // Disable smoothing for pixel-perfect rendering
+                disableSmoothing(ctx);
+                
+                // Draw the image on the canvas
+                ctx.drawImage(img, 0, 0);
+                
+                resolve();
+            };
+            
+            img.onerror = function() {
+                reject(new Error('Failed to load image'));
+            };
+            
+            img.src = imageUrl;
+        });
+    }
+
+    // Handle saving the image
     function handleSaveImage() {
-        console.log('Save Image action');
-
-        // Get the canvas element
-        const canvas = document.getElementById('imageView');
-        if (!canvas) return;
-
-        // Create a temporary canvas for saving
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
+        if (!imageCanvas) {
+            updateStatus('No image to save');
+            return;
+        }
         
-        // Get context and disable smoothing using your function
-        const tempCtx = tempCanvas.getContext('2d');
-        disableSmoothing(tempCtx);
+        updateStatus('Saving image...');
         
-        // Copy the pixel data from original canvas
-        const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-        tempCtx.putImageData(imageData, 0, 0);
-        
-        // Create a temporary link element for download
+        // Create a link element for downloading
         const link = document.createElement('a');
-
-        let saveFilename = 'pixelsorted.png'; // Default name
-
+        
+        // Generate filename
+        let saveFilename = 'image.png';
+        
         if (originalFileName) {
-            // Extract the base name without extension
             const lastDotIndex = originalFileName.lastIndexOf('.');
             const baseName = lastDotIndex !== -1 ? 
                 originalFileName.substring(0, lastDotIndex) : 
                 originalFileName;
                 
-            // Add the suffix and ensure .png extension
-            saveFilename = `${baseName}-pixelsorted.png`;
+            saveFilename = `${baseName}-edited.png`;
         }
         
         link.download = saveFilename;
         
-        // Convert canvas content to data URL
-        link.href = canvas.toDataURL('image/png');
-        
-        // Trigger download
+        // Convert canvas to data URL and trigger download
+        link.href = imageCanvas.toDataURL('image/png');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }
-
-
-
-    
-    // Handle Restore Image
-    function handleRestoreImage() {
-        console.log('Restore Original Image action');
         
-        if (!originalImageUrl) {
-            console.log('No original image to restore');
-            return;
+        updateStatus('Image saved as ' + saveFilename);
+        
+        // Close dropdown
+        if (fileDropdown) {
+            fileDropdown.classList.remove('show-menu');
         }
-        
-        const canvas = document.getElementById('imageView');
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        const img = new Image();
-        
-        img.onload = function() {
-            // Ensure canvas size matches image
-            canvas.width = img.width;
-            canvas.height = img.height;
+    }
 
-            // Get context and disable smoothing
-            const ctx = canvas.getContext('2d');
-            disableSmoothing(ctx);
+    // Get the exit button
+    const exitButton = document.getElementById('exitApp');
+
+    // Add event listener for exit button
+    if (exitButton) {
+        exitButton.addEventListener('click', function() {
+            // Close the current browser tab/window
+            window.close();
             
-            // Draw the original image back to the canvas
-            ctx.drawImage(img, 0, 0);
-        };
+            // In case window.close() doesn't work (due to browser security restrictions)
+            // Add a fallback message
+            updateStatus('This browser prevents programmatic closing of tabs. Please close this tab manually.');
+            
+            // Close dropdown
+            if (fileDropdown) {
+                fileDropdown.classList.remove('show-menu');
+            }
+        });
+    }
+
+    // Set up image viewport with zoom and pan
+    function setupImageViewport() {
+        // Reset zoom and pan
+        scale = 1;
+        offsetX = 0;
+        offsetY = 0;
+        applyTransform();
         
-        img.src = originalImageUrl;
-    }
-    
-    // Set up handlers for the editing tools
-    const invertButton = document.getElementById('invertButton');
-    if (invertButton) {
-        invertButton.addEventListener('click', function() {
-            const canvas = document.getElementById('imageView');
-            PixelSorter.invertImage(canvas);
-        });
-    }
-    
-    const randomSortButton = document.getElementById('randomSortButton');
-    if (randomSortButton) {
-        randomSortButton.addEventListener('click', function() {
-            const canvas = document.getElementById('imageView');
-            PixelSorter.processImage(canvas, 'random', currentThreshold);
-        });
-    }
-    
-    const brightSortButton = document.getElementById('brightSortButton');
-    if (brightSortButton) {
-        brightSortButton.addEventListener('click', function() {
-            const canvas = document.getElementById('imageView');
-            PixelSorter.processImage(canvas, 'brightness', currentThreshold);
-        });
-    }
-    
-    const saturationSortButton = document.getElementById('saturationSortButton');
-    if (saturationSortButton) {
-        saturationSortButton.addEventListener('click', function() {
-            const canvas = document.getElementById('imageView');
-            PixelSorter.processImage(canvas, 'saturation', currentThreshold);
-        });
-    }
-    
-    const hueSortButton = document.getElementById('hueSortButton');
-    if (hueSortButton) {
-        hueSortButton.addEventListener('click', function() {
-            const canvas = document.getElementById('imageView');
-            PixelSorter.processImage(canvas, 'hue', currentThreshold);
-        });
-    }
-    
-    // Set up the unified sort button
-    
-    if (sortButton) {
-        sortButton.addEventListener('click', function() {
-            const canvas = document.getElementById('imageView');
-            // Remove the chunking parameter
-            PixelSorter.processImage(canvas, currentSortType, currentThreshold, currentSortDirection);
-        });
+        // Set up event listeners
+        setupZoomAndPan();
     }
 
-
-    //zoom stuff
+    // Set up zoom and pan functionality
     function setupZoomAndPan() {
-        const canvas = document.getElementById('imageView');
+        if (!imageCanvas) return;
+        
         const container = document.querySelector('.main-content');
         
-        if (!canvas) return;
-        
         // Mouse wheel event for zooming
-        canvas.addEventListener('wheel', function(e) {
+        container.addEventListener('wheel', function(e) {
             e.preventDefault();
             
-            // Get mouse position relative to canvas
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            
             // Calculate zoom factor based on wheel delta
-            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1; // Zoom out or in
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
             const newScale = scale * zoomFactor;
             
             // Limit zoom scale to reasonable values
-            if (newScale >= 0.1 && newScale <= 10) {
+            if (newScale >= 0.2 && newScale <= 10) {
+                // Get mouse position relative to container
+                const rect = container.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
                 // Calculate new offsets to zoom toward cursor
                 offsetX = mouseX - (mouseX - offsetX) * zoomFactor;
                 offsetY = mouseY - (mouseY - offsetY) * zoomFactor;
                 scale = newScale;
                 
                 // Apply the transformation
-                applyTransform(canvas);
+                applyTransform();
             }
         });
         
         // Mouse events for dragging/panning
-        canvas.addEventListener('mousedown', function(e) {
-            isDragging = true;
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
-            canvas.style.cursor = 'grabbing';
+        container.addEventListener('mousedown', function(e) {
+            if (e.button === 0) { // Left mouse button only
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                container.style.cursor = 'grabbing';
+            }
         });
         
-        canvas.addEventListener('mousemove', function(e) {
+        container.addEventListener('mousemove', function(e) {
             if (isDragging) {
                 // Calculate the mouse movement
                 const deltaX = e.clientX - lastMouseX;
@@ -407,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastMouseY = e.clientY;
                 
                 // Apply the new transformation
-                applyTransform(canvas);
+                applyTransform();
             }
         });
         
@@ -415,58 +286,42 @@ document.addEventListener('DOMContentLoaded', function() {
         function endDrag() {
             if (isDragging) {
                 isDragging = false;
-                canvas.style.cursor = 'grab';
+                container.style.cursor = 'default';
             }
         }
         
-        canvas.addEventListener('mouseup', endDrag);
-        canvas.addEventListener('mouseleave', endDrag);
+        container.addEventListener('mouseup', endDrag);
+        container.addEventListener('mouseleave', endDrag);
         
-        // Set initial cursor style
-        canvas.style.cursor = 'grab';
+        // Show grabbable cursor when hovering over the image
+        imageCanvas.addEventListener('mouseover', function() {
+            if (!isDragging) {
+                container.style.cursor = 'grab';
+            }
+        });
         
-        // Add reset button to tools panel
-        const toolsPanel = document.querySelector('.tools-panel');
-        if (toolsPanel) {
-            const resetButton = document.createElement('button');
-            resetButton.textContent = 'Reset Zoom';
-            resetButton.className = 'tool-button';
-            resetButton.addEventListener('click', function() {
-                scale = 1;
-                offsetX = 0;
-                offsetY = 0;
-                applyTransform(canvas);
-            });
-            
-            toolsPanel.appendChild(resetButton);
+        imageCanvas.addEventListener('mouseout', function() {
+            if (!isDragging) {
+                container.style.cursor = 'default';
+            }
+        });
+    }
+
+    // Apply transform to canvas
+    function applyTransform() {
+        if (imageCanvas) {
+            imageCanvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
         }
     }
 
-    // After successfully loading an image, call:
-    function setupImageViewport(canvas) {
-        // Reset zoom and pan
-        scale = 1;
-        offsetX = 0;
-        offsetY = 0;
-        applyTransform(canvas);
-        
-        // Setup zoom and pan events
-        setupZoomAndPan();
-    }
-    
-    // Apply transform to the canvas
-    function applyTransform(canvas) {
-        canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-        canvas.style.transformOrigin = '0 0';
-    }
-
-    // Add this function to script.js
+    // Disable image smoothing on a canvas context
     function disableSmoothing(ctx) {
-        // Disable image smoothing for crisp pixels
         ctx.imageSmoothingEnabled = false;
         ctx.mozImageSmoothingEnabled = false;
         ctx.webkitImageSmoothingEnabled = false;
         ctx.msImageSmoothingEnabled = false;
     }
-    
+
+    // Initialize the application
+    initUI();
 });

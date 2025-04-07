@@ -2,36 +2,45 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #696969;
+    background-color: #333;
     color: white;
 }
 
-/*--icon--*/
+/* Icon styles */
 .material-symbols-outlined {
-  font-variation-settings:
-  'FILL' 0,
-  'wght' 400,
-  'GRAD' 0,
-  'opsz' 24;
-  font-size: 32px;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-size: 20px;
+    vertical-align: middle;
+    margin-right: 5px;
 }
 
+.upload-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+    display: block;
+}
 
+/* Main layout */
 .container {
     display: flex;
     flex-direction: column;
     height: 100vh;
 }
 
+/* Logo styling */
 .page_logo {
-    height: 24px; /* Adjust height as needed */
-    margin-right: 10px; /* Space between logo and menu button */
+    height: 24px;
+    margin-right: 10px;
     vertical-align: middle;
 }
 
+/* Menu bar */
 .menu-bar {
-    background-color: #333;
-    padding: 4px;
+    background-color: #222;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Menu container */
@@ -46,9 +55,15 @@ body {
     background-color: #333;
     color: white;
     border: none;
-    padding: 3px 8px;
+    padding: 4px 12px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.menu-button:hover {
+    background-color: #444;
 }
 
 /* Dropdown content */
@@ -61,12 +76,15 @@ body {
     z-index: 100;
     top: 100%;
     left: 0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
 }
 
 /* Dropdown buttons */
 .menu-content button {
     color: white;
-    padding: 12px 16px;
+    padding: 10px 16px;
     text-decoration: none;
     display: block;
     background: none;
@@ -74,6 +92,7 @@ body {
     width: 100%;
     text-align: left;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
 /* Hover effect for dropdown buttons */
@@ -86,12 +105,14 @@ body {
     display: block !important;
 }
 
+/* Content container */
 .content-container {
     display: flex;
     flex: 1;
     overflow: hidden;
 }
 
+/* Canvas styling */
 #imageView {
     max-width: 100%;
     max-height: 100%;
@@ -99,31 +120,47 @@ body {
     position: absolute;
     z-index: 1;
     transform-origin: 0 0;
-    transition: transform 0.05s ease-out; /* Smooth transform changes */
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
+    transition: transform 0.05s ease-out;
     image-rendering: pixelated;
-    image-rendering: crisp-edges;
 }
 
+/* Main content area */
 .main-content {
-    width: 80%;
+    width: 75%;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 10px;
     overflow: hidden;
     position: relative;
+    background-color: #1a1a1a;
 }
 
+/* Tools panel */
 .tools-panel {
-    width: 20%;
-    background-color: #444;
-    padding: 10px;
+    width: 25%;
+    background-color: #2a2a2a;
+    padding: 15px;
     overflow-y: auto;
-    border-left: 1px solid #555;
+    border-left: 1px solid #444;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
 }
 
+.tools-panel h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #ddd;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+}
+
+.placeholder-text {
+    color: #888;
+    font-style: italic;
+}
+
+/* Upload container */
 .upload-container {
     position: absolute;
     top: 0;
@@ -133,148 +170,76 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2;
+    z-index: 10;
     box-sizing: border-box;
     transition: all 0.3s ease;
+    background-color: rgba(26, 26, 26, 0.8);
 }
 
 .upload-prompt {
     text-align: center;
-    padding: 20px;
-    background-color: rgba(30, 30, 30, 0.3);
-    border-radius: 10px;
-    border: 3px dashed #888;
+    padding: 30px;
+    background-color: rgba(40, 40, 40, 0.8);
+    border-radius: 8px;
+    border: 2px dashed #666;
     max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    cursor: pointer; /* Add cursor pointer to indicate it's clickable */
 }
 
 .upload-prompt:hover {
-    background-color: rgba(30, 30, 30, 0.5);
+    background-color: rgba(50, 50, 50, 0.8);
+    border-color: #888;
+    transform: scale(1.02); /* Slightly enlarge on hover */
 }
 
-.upload-icon {
-    font-size: 64px;
-    margin-bottom: 10px;
+.material-symbols-outlined.upload-icon {
+    font-size: 72px; /* Larger icon */
+    margin-bottom: 15px;
     display: block;
 }
 
-.browse-button {
-    background-color: #007BFF;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    margin-top: 15px;
-    transition: background-color 0.3s;
-}
-
-.browse-button:hover {
-    background-color: #0056b3;
-}
-
-.threshold-control {
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
-
-.threshold-control label {
-    display: block;
-    margin-bottom: 10px;
-}
-
-.threshold-control input {
-    width: 100%;
-}
-
-.drag-over {
-    border-color: #007BFF;
-    background-color: rgba(60, 60, 60, 0.9);
-}
-
-
-
-.tool-button {
-    display: block;
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 8px;
-    background-color: #555;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.tool-button:hover {
-    background-color: #666;
-}
-
-
-/* sort type selctor */
-.sort-type-container {
-    margin-bottom: 20px;
-}
-
-.sort-type-container label {
-    display: block;
+.upload-prompt h3 {
+    margin-top: 10px;
     margin-bottom: 5px;
-    font-weight: bold;
+    font-size: 10px; /* Smaller heading */
 }
 
-.sort-selector {
-    width: 100%;
-    padding: 8px;
-    background-color: #555;
-    color: white;
-    border: 1px solid #666;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.sort-selector:hover {
-    background-color: #666;
-}
-
-.sort-selector option {
-    background-color: #444;
-}
-
-/* Add this to style.css */
-.sort-direction-container {
-    margin-bottom: 20px;
-}
-
-.sort-direction-container label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-
-/* chunk-width-control styles 
-.chunk-width-control {
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
-
-.chunk-width-control label {
-    display: block;
-    margin-bottom: 10px;
-}
-
-.chunk-width-control input {
-    width: 100%;
-}
-
-.help-text {
-    font-size: 12px;
+.upload-prompt p {
+    margin: 5px 0 0;
     color: #aaa;
-    margin: 2px 0 0 0;
+    font-size: 8px; /* Smaller paragraph text */
 }
-*/
+
+/* Status bar */
+.status-bar {
+    background-color: #222;
+    padding: 8px 15px;
+    font-size: 13px;
+    color: #aaa;
+    border-top: 1px solid #444;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .content-container {
+        flex-direction: column;
+    }
+    
+    .main-content, .tools-panel {
+        width: 100%;
+        height: 50%;
+    }
+    
+    .tools-panel {
+        border-left: none;
+        border-top: 1px solid #444;
+    }
+}
 
 @media (max-width: 600px) {
     .menu-bar {
@@ -285,18 +250,4 @@ body {
     .menu {
         margin-bottom: 5px;
     }
-
-    .content-container {
-        flex-direction: column;
-    }
-    
-    .main-content, .tools-panel {
-        width: 100%;
-    }
-    
-    .tools-panel {
-        border-left: none;
-        border-top: 1px solid #555;
-    }
-    
 }

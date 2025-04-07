@@ -3,15 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <meta name="author" description="raiyan74">
-
-    <title>Pixel Sorted</title>
-    
-    <link href="style.css" rel="stylesheet">
-
+    <title>Pixel Sorter</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=file_open" />
-
 </head>
 <body>
     <div class="container">
@@ -19,11 +13,11 @@
         <div class="menu-bar">
             <div class="menu">
                 <img class="page_logo" src="Pixelsorter2.png" alt="Pixel Sorter Logo">
-                <button class="menu-button" id="fileMenuButton">File</button>
+                <button class="menu-button" id="fileMenuButton">Image</button>
                 <div class="menu-content" id="fileDropdown">
-                    <button id="openImage">Open Image</button>
-                    <button id="saveImage">Save Image</button>
-                    <button id="restoreImage">Restore Original Image</button>
+                    <button id="openImage">Open</button>
+                    <button id="saveImage">Save</button>
+                    <button id="exitApp">Exit</button>
                 </div>
             </div>
         </div>
@@ -35,62 +29,29 @@
                 <canvas id="imageView"></canvas>
                 
                 <!-- Upload Container for initial image upload -->
+                <!-- Upload Container for initial image upload -->
                 <div id="uploadContainer" class="upload-container">
-                    <div class="upload-prompt">
+                    <div class="upload-prompt" id="uploadPrompt">
                         <span class="material-symbols-outlined upload-icon">file_open</span>
-                        <h3>Open File to get Started.</h3>
+                        <h3>Open File to get Started</h3>
                         <p>Supported formats: JPG, PNG</p>
-                        
                     </div>
                 </div>
-
             </div>
             
-            <!-- Tools Panel on the Right -->
+            <!-- Empty Tools Panel for future modules -->
             <div class="tools-panel">
-                <h3>Editing Tools</h3>
-                
-                <!-- Sort Type Selection -->
-                <div class="sort-type-container">
-                    <label for="sortTypeSelector">Sort Type:</label>
-                    <select id="sortTypeSelector" class="sort-selector">
-                        <option value="brightness">Brightness</option>
-                        <option value="saturation">Saturation</option>
-                        <option value="hue">Hue</option>
-                        <option value="random">Random</option>
-                    </select>
-                </div>
-                
-                <div class="threshold-control">
-                    <label>
-                        Threshold: <span id="thresholdValue">0.50</span>
-                    </label>
-                    <input type="range" id="thresholdSlider" min="0.1" max="1" step="0.01" value="0.5">
-                </div>
-
-                <!-- Add this after the sort-type-container div in index.html -->
-                <div class="sort-direction-container">
-                    <label for="sortDirectionSelector">Sort Direction:</label>
-                    <select id="sortDirectionSelector" class="sort-selector">
-                        <option value="right">Right →</option>
-                        <option value="left">Left ←</option>
-                        <option value="down">Down ↓</option>
-                        <option value="up">Up ↑</option>
-                    </select>
-                </div>
-                
-                <!-- Unified Sort Button -->
-                <button id="sortButton" class="tool-button primary-button">Apply Sort</button>
-                
-                <hr>
-                
+                <h3>Tools</h3>
+                <p class="placeholder-text">Tool modules will be added here.</p>
             </div>
         </div>
 
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div id="statusMessage">Ready</div>
+        </div>
     </div>
 
-    <!-- Include JavaScript files -->
-    <script src="pixelSorterAlgorithms.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
