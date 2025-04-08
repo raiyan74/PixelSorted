@@ -86,12 +86,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set up rotation direction control
         setupRotationControl();
+
+        // Set up falloff slider control
+        setupFalloffControl();
         
         // Listen for image loaded event
         document.addEventListener('imageLoaded', function() {
             // Generate histogram when an image is loaded
             setTimeout(generateHistogram, 100); // Small delay to ensure image is fully processed
         });
+
+        
     }
 
     // Set up histogram and threshold controls
@@ -228,6 +233,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 rotationValueDisplay.textContent = `${angle}°`;
             }
         }
+    }
+
+    // Set up falloff control
+    function setupFalloffControl() {
+        const falloffSlider = document.getElementById('falloffSlider');
+        const falloffValue = document.getElementById('falloffValue');
+        
+        if (!falloffSlider || !falloffValue) return;
+        
+        // Set initial value
+        falloffSlider.value = window.sortConfig.falloffChance;
+        falloffValue.textContent = falloffSlider.value + '%';
+        
+        // Add event listener for changes
+        falloffSlider.addEventListener('input', function() {
+            // Update the display value
+            falloffValue.textContent = this.value + '%';
+            
+            // Update the sort configuration
+            window.sortConfig.falloffChance = parseInt(this.value);
+        });
     }
 
     // Generate histogram data from image
