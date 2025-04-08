@@ -1,9 +1,26 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Space Mono', monospace !important;
     margin: 0;
     padding: 0;
     background-color: #333;
     color: white;
+}
+
+body,
+button,
+input,
+select,
+option,
+textarea,
+.menu-button,
+.menu-content button,
+.control-selector,
+.threshold-values,
+.rotation-value,
+.angle-indicator,
+.apply-button,
+.reset-button {
+  font-family: 'Space Mono', monospace;
 }
 
 /* Icon styles */
@@ -41,6 +58,7 @@ body {
     display: flex;
     align-items: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 100;
 }
 
 /* Menu container */
@@ -155,11 +173,6 @@ body {
     padding-bottom: 5px;
 }
 
-.placeholder-text {
-    color: #888;
-    font-style: italic;
-}
-
 /* Upload container */
 .upload-container {
     position: absolute;
@@ -194,22 +207,17 @@ body {
     transform: scale(1.02); /* Slightly enlarge on hover */
 }
 
-.material-symbols-outlined.upload-icon {
-    font-size: 72px; /* Larger icon */
-    margin-bottom: 15px;
-    display: block;
-}
-
 .upload-prompt h3 {
     margin-top: 10px;
     margin-bottom: 5px;
-    font-size: 10px; /* Smaller heading */
+    font-size: 16px;
+    border: none;
 }
 
 .upload-prompt p {
     margin: 5px 0 0;
     color: #aaa;
-    font-size: 8px; /* Smaller paragraph text */
+    font-size: 12px;
 }
 
 /* Status bar */
@@ -224,6 +232,259 @@ body {
     align-items: center;
 }
 
+/* Sort Type Dropdown */
+.control-section {
+    margin-bottom: 20px;
+    background-color: #333;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.control-section label {
+    display: block;
+    margin-bottom: 8px;
+    color: #ddd;
+    font-size: 14px;
+}
+
+.control-selector {
+    width: 100%;
+    padding: 8px;
+    background-color: #444;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 4px;
+    font-size: 14px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6'%3E%3Cpath d='M0 0l6 6 6-6z' fill='%23fff'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+}
+
+.control-selector:hover {
+    background-color: #555;
+}
+
+/* Histogram Styles */
+.histogram-container {
+    position: relative;
+    width: 100%;
+    height: 120px;
+    background-color: #222;
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    border: 1px solid #444;
+}
+
+#histogramCanvas {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.threshold-handle {
+    position: absolute;
+    width: 4px;
+    height: 120px;
+    background-color: white;
+    cursor: ew-resize;
+    top: 0;
+}
+
+.lower-handle {
+    left: 25%;
+    background-color: rgba(0, 200, 255, 0.8);
+}
+
+.upper-handle {
+    left: 75%;
+    background-color: rgba(255, 200, 0, 0.8);
+}
+
+.threshold-values {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 5px;
+}
+
+/* Rotation Direction Control Styles */
+/* Rotation Direction Control Styles */
+.rotation-container {
+    position: relative;
+    width: 100%; /* Full width of parent */
+    height: 140px; /* Fixed height */
+    background-color: transparent;
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.rotation-container::before {
+    content: '';
+    position: absolute;
+    width: 120px; /* Fixed width */
+    height: 120px; /* Fixed height - same as width for a circle */
+    border: 1px dashed rgba(150, 150, 150, 0.3);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.rotation-container::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* Updated rotation handle style */
+.rotation-handle {
+    position: absolute;
+    width: 2px;
+    height: 50%;  /* Make it reach from center to edge */
+    background-color: rgba(75, 140, 255, 0.8);
+    top: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    z-index: 2;
+    transform: translate(-50%, -100%) rotate(0deg);
+}
+
+/* Add a circle indicator at the top of the handle */
+.rotation-handle::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: rgba(75, 140, 255, 0.8);
+    border-radius: 50%;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+
+/* Add a perfect circle background */
+
+
+#rotationDirectionCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    pointer-events: none;  /* Make canvas transparent to mouse events */
+}
+
+.rotation-value {
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 5px;
+}
+
+/* Add angle indicators for the compass points */
+.angle-indicator {
+    position: absolute;
+    font-size: 10px;
+    color: rgba(180, 180, 180, 0.7);
+    pointer-events: none;
+}
+
+.angle-0 {
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.angle-90 {
+    top: 50%;
+    right: 5px;
+    transform: translateY(-50%);
+}
+
+.angle-180 {
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.angle-270 {
+    top: 50%;
+    left: 5px;
+    transform: translateY(-50%);
+}
+
+/* Apply Button and Reset Button */
+.apply-button,
+.reset-button {
+    width: 100%;
+    padding: 12px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 10px;
+}
+
+.apply-button {
+    background-color: #4d8cff;
+}
+
+.apply-button:hover {
+    background-color: #3a7ae6;
+}
+
+.apply-button:active {
+    background-color: #2d62c7;
+}
+
+.reset-button {
+    background-color: #555;
+}
+
+.reset-button:hover {
+    background-color: #666;
+}
+
+.reset-button:active {
+    background-color: #444;
+}
+
+/* Divider */
+.button-divider {
+    border: none;
+    border-top: 1px solid #444;
+    margin: 15px 0;
+}
+
+/* Material symbols (icons) */
+.material-symbols-outlined.upload-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 900px) {
     .content-container {
@@ -232,10 +493,15 @@ body {
     
     .main-content, .tools-panel {
         width: 100%;
-        height: 50%;
+        height: auto;
+    }
+    
+    .main-content {
+        flex: 2;
     }
     
     .tools-panel {
+        flex: 1;
         border-left: none;
         border-top: 1px solid #444;
     }
@@ -249,5 +515,29 @@ body {
     
     .menu {
         margin-bottom: 5px;
+    }
+    
+    .control-section {
+        padding: 8px;
+    }
+    
+    .histogram-container,
+    .rotation-container {
+        height: 80px;
+    }
+    
+    .threshold-handle {
+        height: 80px;
+    }
+}
+
+@media (min-width: 768px) {
+    .rotation-container {
+        /* Force square dimensions at larger screens */
+        width: 140px;
+        height: 140px;
+        padding-bottom: 0; /* Remove padding approach */
+        margin-left: auto;
+        margin-right: auto;
     }
 }
